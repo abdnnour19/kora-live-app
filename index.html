@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>مباريات اليوم بث مباشر - Kora Live</title>
-    <meta name="description" content="شاهد مباريات اليوم بث مباشر بدون تقطيع. تطبيق لمتابعة الدوريات العالمية بجودة عالية.">
+    <title>كورة لايف الجزائر | مباريات اليوم بث مباشر - Kora Live DZ</title>
+    <meta name="description" content="شاهد مباريات اليوم بث مباشر بدون تقطيع. تطبيق كورة لايف الجزائر لمتابعة الدوريات العالمية بجودة عالية.">
+    <link rel="canonical" href="https://kora-live-dz.js.org/" />
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,7 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
 
     <style>
-        /* التنسيقات الأصلية */
+        /* التنسيقات الأصلية الخاصة بك */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Cairo', sans-serif; background-color: #f1f2f6; padding: 10px; padding-bottom: 70px; user-select: none; }
         .app-container { max-width: 450px; margin: 0 auto; min-height: 80vh; }
@@ -44,7 +45,6 @@
         
         .card-footer { background: #f8f9fa; padding: 10px; display: flex; flex-wrap: wrap; justify-content: space-between; font-size: 0.75rem; color: #555; border-top: 1px solid #eee; }
 
-        /* مودال المشغلات */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: #2d3436; width: 90%; max-width: 350px; padding: 25px; border-radius: 25px; text-align: center; color: white; position: relative; }
         .video-box { background: #000; width: 100%; max-width: 800px; border-radius: 10px; overflow: hidden; position: relative; }
@@ -64,7 +64,7 @@
 
 <div class="app-container">
     <div class="header">
-        <h2 id="app-title">🔥 مباريات اليوم</h2>
+        <h2 id="app-title">🔥 كورة لايف الجزائر</h2>
         <div class="live-count-badge">
             <i class="fa-solid fa-eye live-eye"></i>
             <span id="live-text">يشاهد الآن:</span>
@@ -100,7 +100,7 @@
 </div>
 
 <script>
-    // إعدادات Firebase
+    // إعدادات Firebase الخاصة بك
     const firebaseConfig = {
       apiKey: "AIzaSyD0te1Adv8xLqFaUZnT2QHvYWu5eFqDRHA",
       authDomain: "abgfd-c89c5.firebaseapp.com",
@@ -111,20 +111,23 @@
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // عداد المشاهدين
+    // عداد المشاهدين المباشر
     const onlineRef = database.ref('onlineUsers');
     database.ref('.info/connected').on('value', s => { if(s.val()) { const c = onlineRef.push(); c.onDisconnect().remove(); c.set(true); } });
     onlineRef.on('value', s => { document.getElementById('online-count').innerText = s.numChildren(); });
 
-    // تحميل المباريات
+    // تحميل المباريات من TodayMatches
     function loadMatches() {
         const list = document.getElementById('matches-list');
         database.ref('TodayMatches').on('value', (snap) => {
             list.innerHTML = '';
             const data = snap.val();
-            if(!data) return;
+            if(!data) {
+                list.innerHTML = '<p style="text-align:center; color:#666;">لا توجد مباريات مجدولة حالياً</p>';
+                return;
+            }
             Object.values(data).reverse().forEach(match => {
-                const isLive = true; // يمكنك ربطها بتوقيت المباراة الفعلي
+                const isLive = true; 
                 list.innerHTML += `
                     <div class="match-card" onclick="openPlayerOptions('${match.streamLink}')">
                         <div class="card-body">
@@ -144,22 +147,18 @@
         });
     }
 
-    // منطق فتح المشغلات
     let hlsInstance = null;
 
     function openPlayerOptions(url) {
         if (!url) return;
         const link = url.trim();
 
-        // 1. فحص إذا كان الرابط من فيسبوك
         if (link.includes('facebook.com') || link.includes('fb.watch')) {
             openFacebookPlayer(link);
         } 
-        // 2. فحص إذا كان رابط HLS (https + m3u8)
         else if (link.startsWith('https') && (link.includes('.m3u8') || link.includes('.mpd'))) {
             openInternalPlayer(link);
         } 
-        // 3. أي روابط أخرى (HTTP أو سيرفرات خاصة) تفتح في VLC
         else {
             document.getElementById('vlc-link').href = `vlc://${link}`;
             document.getElementById('mx-link').href = `intent:${link}#Intent;package=com.mxtech.videoplayer.ad;type=video/*;end`;
@@ -167,7 +166,6 @@
         }
     }
 
-    // مشغل HLS الداخلي
     function openInternalPlayer(url) {
         const modal = document.getElementById('internalPlayerModal');
         const video = document.getElementById('hls-video');
@@ -192,7 +190,6 @@
         document.getElementById('internalPlayerModal').style.display = 'none';
     }
 
-    // مشغل فيسبوك
     function openFacebookPlayer(url) {
         const modal = document.getElementById('facebookPlayerModal');
         const container = document.getElementById('fb-iframe-container');
@@ -209,6 +206,7 @@
 
     function closeModal(e) { if (e.target.classList.contains('modal-overlay')) e.target.style.display = 'none'; }
 
+    // تشغيل جلب البيانات
     loadMatches();
 </script>
 </body>
