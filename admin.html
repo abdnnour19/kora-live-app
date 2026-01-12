@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الأدمن</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+    <style>
+        body { font-family: 'Cairo', sans-serif; background: #f1f2f6; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #581c0c; margin-bottom: 20px; }
+        
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; font-family: inherit; }
+        
+        .btn { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn:hover { background: #219150; }
+        
+        .match-item { background: #fafafa; border: 1px solid #eee; padding: 10px; margin-top: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .match-details { font-size: 0.9rem; }
+        .actions button { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; color: white; margin-left: 5px; }
+        .edit-btn { background: #f39c12; }
+        .delete-btn { background: #c0392b; }
+        .editing-mode { border: 2px solid #f39c12; background: #fffcf5; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="form-container">
+    <h2>⚽ إدارة المباريات</h2>
+    
+    <input type="hidden" id="match-id">
+    
+    <label>الفريق الأول:</label>
+    <input type="text" id="team1" placeholder="مثال: ريال مدريد">
+    <input type="text" id="logo1" placeholder="رابط شعار الفريق 1">
+    
+    <label>الفريق الثاني:</label>
+    <input type="text" id="team2" placeholder="مثال: برشلونة">
+    <input type="text" id="logo2" placeholder="رابط شعار الفريق 2">
+    
+    <label>توقيت المباراة (24 ساعة):</label>
+    <input type="time" id="match-time" required>
+    
+    <label>معلومات البث:</label>
+    <input type="text" id="channel" placeholder="القناة (مثال: beIN Sports 1)">
+    <input type="text" id="commentator" placeholder="المعلق (مثال: حفيظ دراجي)">
+    <input type="text" id="league" placeholder="البطولة (مثال: الدوري الإسباني)">
+    
+    <label>رابط البث:</label>
+    <input type="text" id="streamLink" placeholder="http://server.../56">
+
+    <button onclick="saveMatch()" class="btn" id="save-btn">إضافة المباراة</button>
+    <button onclick="resetForm()" class="btn" style="background:#7f8c8d; display:none;" id="cancel-btn">إلغاء التعديل</button>
+</div>
+
+<div class="container" style="margin-top: 20px;">
+    <h3>المباريات المضافة:</h3>
+    <div id="matches-list">Loading...</div>
+</div>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0te1Adv8xLqFaUZnT2QHvYWu5eFqDRHA",
+      authDomain: "abgfd-c89c5.firebaseapp.com",
+      databaseURL: "https://abgfd-c89c5-default-rtdb.firebaseio.com",
+      projectId: "abgfd-c89c5",
+      storageBucket: "abgfd-c89c5.firebasestorage.app",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref('TodayMatches');
+
+    function saveMatch() {
+        const id = document.getElementById('match-id').value;
+        const matchData = {
+            team1: document.getElementById('team1').value,
+            logo1: document.getElementById('logo1').value,
+            team2: document.getElementById('team2').value,
+            logo2: document.getElementById('logo2').value,
+            time: document.getElementById('match-time').value,
+            channel: document.getElementById('channel').value,
+            commentator: document.getElementById('commentator').value, // حفظ المعلق
+            league: document.getElementById('league').value,
+            streamLink: document.getElementById('streamLink').value
+        };
+
+        if (id) {
+            db.child(id).update(matchData).then(() => { alert('تم التعديل!'); resetForm(); });
+        } else {
+            db.push(matchData).then(() => { alert('تمت الإضافة!'); resetForm(); });
+        }
+    }
+
+    db.on('value', (snapshot) => {
+        const list = document.getElementById('matches-list');
+        list.innerHTML = '';
+        snapshot.forEach((child) => {
+            const key = child.key;
+            const data = child.val();
+            list.innerHTML += `
+                <div class="match-item">
+                    <div class="match-details">
+                        <b>${data.team1}</b> vs <b>${data.team2}</b><br>
+                        ⏱️ ${data.time} | 🎤 ${data.commentator || 'غير محدد'}
+                    </div>
+                    <div class="actions">
+                        <button class="edit-btn" onclick='editMatch("${key}", ${JSON.stringify(data)})'><i class="fa-solid fa-pen"></i></button>
+                        <button class="delete-btn" onclick='deleteMatch("${key}")'><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+        });
+    });
+
+    window.editMatch = function(key, data) {
+        document.getElementById('match-id').value = key;
+        document.getElementById('team1').value = data.team1;
+        document.getElementById('logo1').value = data.logo1;
+        document.getElementById('team2').value = data.team2;
+        document.getElementById('logo2').value = data.logo2;
+        document.getElementById('match-time').value = data.time;
+        document.getElementById('channel').value = data.channel;
+        document.getElementById('commentator').value = data.commentator || ''; // استرجاع المعلق
+        document.getElementById('league').value = data.league;
+        document.getElementById('streamLink').value = data.streamLink;
+        
+        document.getElementById('save-btn').innerText = "حفظ التعديلات";
+        document.getElementById('save-btn').style.background = "#f39c12";
+        document.getElementById('cancel-btn').style.display = "block";
+        document.getElementById('form-container').classList.add('editing-mode');
+        window.scrollTo(0,0);
+    }
+
+    window.deleteMatch = function(key) {
+        if(confirm('حذف المباراة؟')) db.child(key).remove();
+    }
+
+    window.resetForm = function() {
+        document.getElementById('match-id').value = '';
+        document.querySelectorAll('input').forEach(i => i.value = '');
+        document.getElementById('save-btn').innerText = "إضافة المباراة";
+        document.getElementById('save-btn').style.background = "#27ae60";
+        document.getElementById('cancel-btn').style.display = "none";
+        document.getElementById('form-container').classList.remove('editing-mode');
+    }
+</script>
+</body>
+</html>

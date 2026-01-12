@@ -1,0 +1,21 @@
+{
+  "name": "مباريات اليوم مباشر",
+  "short_name": "Kora Live",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f1f2f6",
+  "theme_color": "#581c0c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
